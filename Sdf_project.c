@@ -22,6 +22,14 @@ void create_account(){
     scanf("%s",&bank_id);
     printf("Enter your Password");
     scanf("%s",&pass);
+    fp = fopen("accounts.txt", "a");
+    if (fp == NULL) {
+        printf("Error opening file!\n");
+        return;
+}
+    fprintf(fp, "%s %s\n", bank_id, pass);
+    fclose(fp);
+    printf("Account created successfully!\n");
 }
 boolean check_login(char bank_id[], char pass[]){
     FILE *fp;
@@ -53,3 +61,23 @@ void debit(){
     fprintf(fp, "%d", balance);
     fclose(fp);
 }
+void credit(){
+    printf("Enter the amount to credit: ");
+    int amount;
+    scanf("%d", &amount);
+    fp = fopen("accounts.txt", "r+");
+    if (fp == NULL) {
+        printf("Error opening file!\n");
+        return;
+}
+    balance += amount;
+    fprintf(fp, "%d", balance);
+    fclose(fp);
+}
+void check_balance(){
+    fp = fopen("accounts.txt", "r");
+    if (fp == NULL) {
+        printf("Error opening file!\n");
+        return;
+}
+    
