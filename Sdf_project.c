@@ -1,55 +1,108 @@
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
-
-struct account{
+struct account {
     char bank_id[20];
     char pass[20];
     int balance;
 };
 
-void display(){
-    printf("Please enter a choice!!!");
-    printf("1.Create Account");
-    printf("2.Login");
-    printf("3.Exit");
+void display();
+void menu();
+void login();
+void banking_operations(struct account *current_acc);
+void create_account();
+bool check_login(struct account *acc);
+void update_file(struct account updated_acc);
+void debit(struct account *current_acc);
+void credit(struct account *current_acc);
+void check_balance(struct account current_acc);
+void exit_app();
+
+void display() {
+    printf("\nPlease enter a choice:\n");
+    printf("1. Create Account\n");
+    printf("2. Login\n");
+    printf("3. Exit\n");
+    printf("Choice: ");
 }
-void menu(){
-    printf("Please select an option:\n");
+
+void menu() {
+    printf("\nPlease select an option:\n");
     printf("1. Debit\n");
     printf("2. Credit\n");
     printf("3. Check Balance\n");
     printf("4. Logout\n");
+    printf("Choice: ");
 }
-void login(){
-    FILE *fp = fopen("accounts.txt", "r");  
+
+void create_account() {
     struct account acc;
-    printf("Please Enter your Banking Id!");
-    scanf("%s", acc.bank_id);
-    printf("Enter your Password");
-    scanf("%s", acc.pass);
-    if (check_login(acc.bank_id, acc.pass)) {
+    printf("Please Enter your Banking Id: ");
+    scanf("%19s", acc.bank_id);
+    printf("Enter your Password: ");
+    scanf("%19s", acc.pass);
+    acc.balance = 0;
+
+    FILE *fp = fopen("accounts.txt", "a");
+    if (fp == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+    fprintf(fp, "%s %s %d\n", acc.bank_id, acc.pass, acc.balance);
+    fclose(fp);
+    printf("Account created successfully!\n");
+}
+
+bool check_login(struct account *acc) {
+    char id[20], password[20];
+    int balance;
+    FILE *fp = fopen("accounts.txt", "r");
+    if (fp == NULL) {
+        printf("No accounts found. Please create an account first.\n");
+        return false;
+    }
+    while (fscanf(fp, "%19s %19s %d", id, password, &balance) == 3) {
+        if (strcmp(acc->bank_id, id) == 0 && strcmp(acc->pass, password) == 0) {
+            acc->balance = balance; // Load saved balance
+            fclose(fp);
+            return true;
+        }
+    }
+    fclose(fp);
+    return false;
+}
+
+void login() {
+    struct account acc;
+    printf("Please Enter your Banking Id: ");
+    scanf("%19s", acc.bank_id);
+    printf("Enter your Password: ");
+    scanf("%19s", acc.pass);
+
+    if (check_login(&acc)) {
         printf("Login successful!\n");
-        banking_operations();
+        banking_operations(&acc);
     } else {
         printf("Invalid credentials!\n");
     }
-    fclose(fp);
 }
-void banking_operations(){
+
+void banking_operations(struct account *current_acc) {
     int choice;
-    while(1){
+    while (1) {
         menu();
         scanf("%d", &choice);
-        switch(choice){
+        switch (choice) {
             case 1:
-                debit();
+                debit(current_acc);
                 break;
             case 2:
-                credit();
+                credit(current_acc);
                 break;
             case 3:
-                check_balance();
+                check_balance(*current_acc);
                 break;
             case 4:
                 printf("Logging out...\n");
@@ -59,84 +112,73 @@ void banking_operations(){
         }
     }
 }
-void create_account(){
-    struct account acc;
-    printf("Please Enter your Banking Id!");
-    scanf("%s", acc.bank_id);
-    printf("Enter your Password");
-    scanf("%s", acc.pass);
-    acc.balance = 0;
-    FILE *fp = fopen("accounts.txt", "a");
-    if (fp == NULL) {
-        printf("Error opening file!\n");
-        return;
-}
-    fprintf(fp, "%s %s %d\n", acc.bank_id, acc.pass, acc.balance);
-    fclose(fp);
-    printf("Account created successfully!\n");
-}
-boolean check_login(char bank_id[], char pass[]){
-    char id[20], password[20];
-    int balance;
+
+void update_file(struct account updated_acc) {
     FILE *fp = fopen("accounts.txt", "r");
-    if (fp == NULL) {
-        printf("Error opening file!\n");
-        return false;
-    }
-    while (fscanf(fp, "%s %s %d", id, password, &balance) != EOF) {
-        if (strcmp(bank_id, id) == 0 && strcmp(pass, password) == 0) {
-            fclose(fp);
-            return true;
+    if (fp == NULL) return;
+
+    struct account list[100];
+    int count = 0;
+
+    while (fscanf(fp, "%19s %19s %d", list[count].bank_id, list[count].pass, &list[count].balance) == 3) {
+        if (strcmp(list[count].bank_id, updated_acc.bank_id) == 0) {
+            list[count].balance = updated_acc.balance;
         }
+        count++;
     }
     fclose(fp);
-    return false;
+
+    fp = fopen("accounts.txt", "w");
+    for (int i = 0; i < count; i++) {
+        fprintf(fp, "%s %s %d\n", list[i].bank_id, list[i].pass, list[i].balance);
+    }
+    fclose(fp);
 }
-void debit(){
+
+void debit(struct account *current_acc) {
+    int amount;
     printf("Enter the amount to debit: ");
-    int amount;
     scanf("%d", &amount);
-    FILE *fp = fopen("accounts.txt", "r+");
-    if (fp == NULL) {
-        printf("Error opening file!\n");
-        return;
-}
-    acc.balance -= amount;
-    fprintf(fp, "%d", acc.balance);
-    fclose(fp);
-}
-void credit(){
-    printf("Enter the amount to credit: ");
-    int amount;
-    scanf("%d", &amount);
-    FILE *fp = fopen("accounts.txt", "r+");
-    if (fp == NULL) {
-        printf("Error opening file!\n");
-        return;
-}
-    acc.balance += amount;
-    fprintf(fp, "%d", acc.balance);
-    fclose(fp);
-}
-void check_balance(){
-    FILE *fp = fopen("accounts.txt", "r");
-    if (fp == NULL) {
-        printf("Error opening file!\n");
-        return;
+
+    if (amount <= 0) {
+        printf("Invalid amount!\n");
+    } else if (amount > current_acc->balance) {
+        printf("Insufficient balance!\n");
+    } else {
+        current_acc->balance -= amount;
+        update_file(*current_acc);
+        printf("Debited %d successfully!\n", amount);
     }
-    printf("Your current balance is: %d\n", acc.balance);
-    fclose(fp);
 }
-void exit(){
+
+void credit(struct account *current_acc) {
+    int amount;
+    printf("Enter the amount to credit: ");
+    scanf("%d", &amount);
+
+    if (amount <= 0) {
+        printf("Invalid amount!\n");
+    } else {
+        current_acc->balance += amount;
+        update_file(*current_acc);
+        printf("Credited %d successfully!\n", amount);
+    }
+}
+
+void check_balance(struct account current_acc) {
+    printf("Your current balance is: %d\n", current_acc.balance);
+}
+
+void exit_app() {
     printf("Thank you for using our banking system. Goodbye!\n");
 }
 
-int main(){
+int main() {
     int choice;
-    while(1){
+    while (1) {
         display();
         scanf("%d", &choice);
-        switch(choice){
+        switch (choice) {
             case 1:
                 create_account();
                 break;
@@ -144,7 +186,7 @@ int main(){
                 login();
                 break;
             case 3:
-                exit();
+                exit_app();
                 return 0;
             default:
                 printf("Invalid choice! Please try again.\n");
